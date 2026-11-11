@@ -1,0 +1,7 @@
+.installed
+.freebuff
+.cursorrules
+.geminiignore
+.windsurfrules
+*.md
+!README.md
