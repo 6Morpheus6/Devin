@@ -1,3 +1,15 @@
+const fs = require("fs")
+const path = require("path")
+
+// Both official installers finish by launching Devin's interactive login
+// wizard. End the step as soon as the wizard appears: the binary and PATH
+// entry are already in place by then, and login happens on the first run
+// (`/login`) instead of blocking an unattended install.
+const stopAtLoginWizard = [{
+  event: "/(How would you like to log in|esc cancel)/",
+  kill: true
+}]
+
 module.exports = {
   version: "7.0",
 
@@ -10,17 +22,26 @@ module.exports = {
   path: "plugin",
   launch_type: "terminal",
 
-  // The official installer detects Windows (Git Bash / MSYS2 / Cygwin) on its
-  // own and hands off to the PowerShell installer, so this single curl command
-  // covers macOS, Linux, WSL, and Windows. It installs `devin` and then runs
-  // `devin setup`.
+  // Install with the platform's default shell. On Windows the curl | bash
+  // pipeline is handed to PowerShell's installer directly, because Pinokio's
+  // `shell: "bash"` override starts a shell that never executes the command.
+  // Both installers are Cognition's official ones and end with `devin setup`.
   install: [{
+    when: "{{platform === 'win32'}}",
     method: "shell.run",
     params: {
-      // Use Pinokio's bundled bash so the pipe works on Windows too, where the
-      // default shell is cmd.exe.
-      shell: "bash",
-      message: "curl -fsSL https://cli.devin.ai/install.sh | bash"
+      message: "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"irm https://static.devin.ai/cli/setup.ps1 | iex\"",
+      // Keyboard access is the fallback if the wizard event below does not fire.
+      input: true,
+      on: stopAtLoginWizard
+    }
+  }, {
+    when: "{{platform !== 'win32'}}",
+    method: "shell.run",
+    params: {
+      message: "curl -fsSL https://cli.devin.ai/install.sh | bash",
+      input: true,
+      on: stopAtLoginWizard
     }
   }, {
     method: "fs.write",
@@ -31,8 +52,9 @@ module.exports = {
   }],
 
   // Pinokio checks this before the first run and offers to install when false.
-  installed: async (kernel, info, ctx) => {
-    return await kernel.exists(ctx.dirname, ".installed")
+  // Use the plugin folder directly: Pinokio does not pass `ctx` to this check.
+  installed: async () => {
+    return fs.existsSync(path.join(__dirname, ".installed"))
   },
 
   // Devin keeps credentials and session history in its own data folder, so
@@ -51,17 +73,28 @@ module.exports = {
       message: "git pull"
     }
   }, {
+    when: "{{platform === 'win32'}}",
     method: "shell.run",
     params: {
-      shell: "bash",
-      message: "curl -fsSL https://cli.devin.ai/install.sh | bash"
+      message: "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"irm https://static.devin.ai/cli/setup.ps1 | iex\"",
+      input: true,
+      on: stopAtLoginWizard
+    }
+  }, {
+    when: "{{platform !== 'win32'}}",
+    method: "shell.run",
+    params: {
+      message: "curl -fsSL https://cli.devin.ai/install.sh | bash",
+      input: true,
+      on: stopAtLoginWizard
     }
   }],
 
   // Run inside the caller's folder so Devin works on the user's project.
   // The installer puts `devin` in ~/.local/bin on Unix, or on the Windows user
   // PATH, which the already-running Pinokio process may not see yet, so fall
-  // back to the official install location when `devin` is not on PATH.
+  // back to the installer's own entry point when `devin` is not on PATH.
+  // Keep the default shells here; `shell: "bash"` produces an empty terminal.
   run: [{
     when: "{{which('devin')}}",
     id: "run",
@@ -77,8 +110,7 @@ module.exports = {
     id: "run",
     method: "shell.run",
     params: {
-      shell: "bash",
-      message: "\"${LOCALAPPDATA:-$USERPROFILE/AppData/Local}/devin/cli/bin/devin.exe\"",
+      message: "\"%LOCALAPPDATA%\\devin\\cli\\bin\\devin.exe\"",
       path: "{{args.cwd}}",
       input: true
     }
@@ -87,7 +119,7 @@ module.exports = {
     id: "run",
     method: "shell.run",
     params: {
-      message: "\"${XDG_DATA_HOME:-$HOME/.local/share}/devin/cli/_versions/current/bin/devin\"",
+      message: "\"$HOME/.local/bin/devin\"",
       path: "{{args.cwd}}",
       input: true
     }

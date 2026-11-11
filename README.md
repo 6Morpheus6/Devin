@@ -13,17 +13,18 @@ Devin CLI is Cognition's local coding agent: it runs in your terminal, works wit
 
 ## Installation
 
-The plugin uses one command for every OS:
+| Platform | Install command |
+| - | - |
+| macOS / Linux / WSL | `curl -fsSL https://cli.devin.ai/install.sh | bash` |
+| Windows | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm https://static.devin.ai/cli/setup.ps1 | iex"` |
 
-```bash
-curl -fsSL https://cli.devin.ai/install.sh | bash
-```
+Both are Cognition's official installers. On Windows, `irm`/`iex` only exist in PowerShell (the docs explicitly warn they fail in CMD/Git Bash), so the plugin launches the PowerShell installer through `powershell.exe`.
 
-The installer detects Windows (Git Bash / MSYS2 / Cygwin) and hands off to Cognition's PowerShell installer automatically, so the same command works on macOS, Linux, WSL, and Windows. Pinokio runs it through its bundled `bash`, which is required on Windows because the default shell there is `cmd.exe`.
+Both installers finish by starting Devin's interactive login wizard. The plugin ends the step as soon as that wizard appears, because the binary and PATH entry are already installed at that point. This keeps installation unattended; authenticate on first use with `/login` inside Devin (or `devin auth login` in any terminal).
 
 Install locations used by the plugin's launcher fallback:
 
-- macOS / Linux: `$XDG_DATA_HOME/devin/cli/_versions/current/bin/devin` (defaults to `~/.local/share/devin/cli/_versions/current/bin/devin`)
+- macOS / Linux: `~/.local/bin/devin` (the symlink created by `install.sh`)
 - Windows: `%LOCALAPPDATA%\devin\cli\bin\devin.exe`
 
 ## Usage
@@ -100,5 +101,5 @@ For non-interactive automation, call the installed binary as shown above (`devin
 ## Notes
 
 - The plugin runs Devin against `{{args.cwd}}`, the folder you launched it from, never the plugin folder itself.
-- The installer's `devin setup` step runs at the end of installation, so no extra setup script is needed.
+- The installer's login wizard is stopped during installation; authenticate inside Devin on first use (`/login`, or `devin auth login` in any terminal).
 - If `devin` is not yet visible on PATH in the running Pinokio process, the plugin falls back to the official install location listed above.
