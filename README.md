@@ -20,7 +20,12 @@ Devin CLI is Cognition's local coding agent: it runs in your terminal, works wit
 
 Both are Cognition's official installers. On Windows, `irm`/`iex` only exist in PowerShell (the docs explicitly warn they fail in CMD/Git Bash), so the plugin launches the PowerShell installer through `powershell.exe`.
 
-Both installers finish by starting Devin's interactive login wizard. The plugin ends the step as soon as that wizard appears, because the binary and PATH entry are already installed at that point. This keeps installation unattended; authenticate on first use with `/login` inside Devin (or `devin auth login` in any terminal).
+Both installers finish with `devin setup`. The plugin ends the step as soon as setup settles, because the binary and PATH entry are already installed at that point. This keeps installation unattended and covers both endings:
+
+- **New user:** setup shows the interactive login wizard (`How would you like to log in?`).
+- **Existing Devin user (already authenticated):** setup skips the wizard, prints `Logged in.` / `You're all set.` and exits.
+
+Authenticate on first use with `/login` inside Devin (or `devin auth login` in any terminal) if you skipped the wizard.
 
 Install locations used by the plugin's launcher fallback:
 
@@ -101,5 +106,5 @@ For non-interactive automation, call the installed binary as shown above (`devin
 ## Notes
 
 - The plugin runs Devin against `{{args.cwd}}`, the folder you launched it from, never the plugin folder itself.
-- The installer's login wizard is stopped during installation; authenticate inside Devin on first use (`/login`, or `devin auth login` in any terminal).
+- The plugin stops the install step at whichever setup ending appears (login wizard, or the `Logged in.` message when already authenticated). Authenticate inside Devin on first use (`/login`, or `devin auth login` in any terminal).
 - If `devin` is not yet visible on PATH in the running Pinokio process, the plugin falls back to the official install location listed above.

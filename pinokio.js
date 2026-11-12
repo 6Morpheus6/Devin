@@ -2,11 +2,21 @@ const fs = require("fs")
 const path = require("path")
 
 // Both official installers finish by launching Devin's interactive login
-// wizard. End the step as soon as the wizard appears: the binary and PATH
+// wizard. End the step as soon as the setup has settled: the binary and PATH
 // entry are already in place by then, and login happens on the first run
 // (`/login`) instead of blocking an unattended install.
-const stopAtLoginWizard = [{
+//
+// There are two endings, so the handler needs both:
+// - a fresh user gets the login wizard, which waits for a key press forever
+// - an existing Devin user is already authenticated, so `devin setup` skips
+//   the wizard, prints `Logged in.` / `You're all set.` and exits
+// Matching only the wizard makes the second case wait for a screen that never
+// appears, which is why install appeared to fail for existing users.
+const finishSetup = [{
   event: "/(How would you like to log in|esc cancel)/",
+  kill: true
+}, {
+  event: "/(Logged in\\.|You're all set)/",
   kill: true
 }]
 
@@ -31,9 +41,9 @@ module.exports = {
     method: "shell.run",
     params: {
       message: "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"irm https://static.devin.ai/cli/setup.ps1 | iex\"",
-      // Keyboard access is the fallback if the wizard event below does not fire.
+      // Keyboard access is the fallback if neither setup ending is detected.
       input: true,
-      on: stopAtLoginWizard
+      on: finishSetup
     }
   }, {
     when: "{{platform !== 'win32'}}",
@@ -41,7 +51,7 @@ module.exports = {
     params: {
       message: "curl -fsSL https://cli.devin.ai/install.sh | bash",
       input: true,
-      on: stopAtLoginWizard
+      on: finishSetup
     }
   }, {
     method: "fs.write",
@@ -78,7 +88,7 @@ module.exports = {
     params: {
       message: "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"irm https://static.devin.ai/cli/setup.ps1 | iex\"",
       input: true,
-      on: stopAtLoginWizard
+      on: finishSetup
     }
   }, {
     when: "{{platform !== 'win32'}}",
@@ -86,7 +96,7 @@ module.exports = {
     params: {
       message: "curl -fsSL https://cli.devin.ai/install.sh | bash",
       input: true,
-      on: stopAtLoginWizard
+      on: finishSetup
     }
   }],
 
